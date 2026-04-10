@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>J.A.R.V.I.S</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #00d4ff; --blue-dim: #0099bb; --blue-glow: rgba(0,212,255,0.3);
+    --red: #ff3c3c; --bg: #020b14; --panel: rgba(0,30,50,0.7); --text: #c8f0ff;
+  }
+  html, body {
+    width: 100%; max-width: 100vw; overflow-x: hidden;
+    background: var(--bg); color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100vh; display: flex; flex-direction: column;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px; animation: gridPulse 8s ease-in-out infinite; pointer-events: none; z-index: 0;
+  }
+  @keyframes gridPulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+  body::after {
+    content: ''; position: fixed; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+    animation: scan 6s linear infinite; opacity:0.3; pointer-events:none; z-index:1;
+  }
+  @keyframes scan { 0%{top:-2px} 100%{top:100vh} }
+
+  header {
+    position: relative; z-index: 10; padding: 10px 16px;
+    border-bottom: 1px solid rgba(0,212,255,0.2);
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(2,11,20,0.9); backdrop-filter: blur(10px);
+    width: 100%; flex-shrink: 0;
+  }
+  .logo {
+    font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.1rem;
+    color: var(--blue); text-shadow: 0 0 20px var(--blue); letter-spacing: 0.1em;
+  }
+  .logo span { color: var(--red); }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .arc-ring { width: 44px; height: 44px; position: relative; flex-shrink: 0; }
+  .arc-ring svg { width: 100%; height: 100%; animation: rotateSlow 8s linear infinite; }
+  @keyframes rotateSlow { to{transform:rotate(360deg)} }
+  .arc-ring-inner { position:absolute; inset:10px; border-radius:50%; background:radial-gradient(circle,rgba(0,212,255,0.6),rgba(0,212,255,0.1)); box-shadow:0 0 12px var(--blue); animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+
+  .status-bar { display:flex; align-items:center; gap:8px; font-size:0.62rem; color:var(--blue-dim); }
+  .status-dot { width:7px; height:7px; border-radius:50%; background:#00ff88; box-shadow:0 0 6px #00ff88; animation:blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  main { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; z-index:5; padding:0 12px 8px; min-height: 0; }
+
+  #chat { flex:1; overflow-y:auto; overflow-x:hidden; padding:14px 0; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; scrollbar-color:var(--blue-dim) transparent; min-height:0; }
+  #chat::-webkit-scrollbar { width:3px; }
+  #chat::-webkit-scrollbar-thumb { background:var(--blue-dim); border-radius:2px; }
+
+  .msg { display:flex; gap:10px; align-items:flex-start; animation:fadeUp 0.4s ease both; max-width:90%; width:fit-content; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { align-self:flex-end; flex-direction:row-reverse; }
+
+  .msg-avatar { width:28px; height:28px; border-radius:50%; border:1px solid var(--blue); display:flex; align-items:center; justify-content:center; font-size:0.55rem; font-family:'Orbitron',sans-serif; color:var(--blue); flex-shrink:0; background:rgba(0,212,255,0.08); }
+  .msg.user .msg-avatar { border-color:var(--red); color:var(--red); background:rgba(255,60,60,0.08); }
+
+  .msg-inner { min-width:0; max-width: 100%; }
+
+  .msg-bubble { background:var(--panel); border:1px solid rgba(0,212,255,0.2); border-radius:2px 12px 12px 12px; padding:10px 14px; font-size:0.82rem; line-height:1.6; color:var(--text); white-space:pre-wrap; word-break:break-word; overflow-wrap:break-word; }
+  .msg.user .msg-bubble { border-color:rgba(255,60,60,0.25); border-radius:12px 2px 12px 12px; background:rgba(50,0,0,0.4); }
+
+  .msg-label { font-size:0.55rem; letter-spacing:0.12em; color:var(--blue-dim); margin-bottom:3px; font-family:'Orbitron',sans-serif; }
+  .msg.user .msg-label { color:rgba(255,100,100,0.7); text-align:right; }
+
+  .typing-indicator { display:flex; gap:5px; align-items:center; padding:10px 14px; }
+  .typing-indicator span { width:5px; height:5px; border-radius:50%; background:var(--blue); animation:bounce 1.2s ease-in-out infinite; }
+  .typing-indicator span:nth-child(2){animation-delay:0.2s} .typing-indicator span:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-5px);opacity:1} }
+
+  .input-area { display:flex; gap:8px; align-items:center; padding:10px 0 4px; border-top:1px solid rgba(0,212,255,0.15); flex-shrink:0; }
+
+  #user-input { flex:1; background:rgba(0,20,35,0.8); border:1px solid rgba(0,212,255,0.25); border-radius:4px; padding:10px 12px; font-family:'Share Tech Mono',monospace; font-size:0.82rem; color:var(--text); outline:none; resize:none; height:44px; min-width:0; }
+  #user-input:focus { border-color:var(--blue); box-shadow:0 0 10px var(--blue-glow); }
+  #user-input::placeholder { color:rgba(0,212,255,0.3); }
+
+  .btn { width:44px; height:44px; min-width:44px; border:1px solid rgba(0,212,255,0.35); border-radius:4px; background:rgba(0,30,50,0.8); color:var(--blue); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
+  .btn:hover { background:rgba(0,212,255,0.12); }
+  .btn:active { transform:scale(0.95); }
+  .btn svg { width:18px; height:18px; }
+  .btn.listening { border-color:var(--red); color:var(--red); animation:redPulse 1s ease-in-out infinite; }
+  @keyframes redPulse { 0%,100%{box-shadow:0 0 8px rgba(255,60,60,0.3)} 50%{box-shadow:0 0 20px rgba(255,60,60,0.7)} }
+
+  /* Overlay */
+  #api-overlay { position:fixed; inset:0; background:rgba(2,11,20,0.97); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; overflow-y:auto; }
+  #api-overlay .logo { font-size:1.6rem; margin-bottom:4px; }
+  #api-overlay p { font-size:0.78rem; color:var(--blue-dim); text-align:center; max-width:360px; line-height:1.8; }
+  #api-overlay a { color:var(--blue); }
+  .steps { background:rgba(0,30,50,0.6); border:1px solid rgba(0,212,255,0.15); border-radius:6px; padding:12px 16px; width:100%; max-width:360px; font-size:0.72rem; line-height:2.2; color:var(--blue-dim); }
+  .steps strong { color:var(--blue); }
+  #api-key-input { width:100%; max-width:360px; background:rgba(0,20,35,0.9); border:1px solid rgba(0,212,255,0.35); border-radius:4px; padding:12px 16px; font-family:'Share Tech Mono',monospace; font-size:0.82rem; color:var(--text); outline:none; text-align:center; }
+  #api-key-input:focus { border-color:var(--blue); box-shadow:0 0 12px var(--blue-glow); }
+  #start-btn { padding:12px 36px; background:rgba(0,212,255,0.1); border:1px solid var(--blue); border-radius:4px; color:var(--blue); font-family:'Orbitron',sans-serif; font-size:0.8rem; letter-spacing:0.12em; cursor:pointer; transition:all 0.2s; text-transform:uppercase; }
+  #start-btn:hover { background:rgba(0,212,255,0.2); }
+  #key-error { color:var(--red); font-size:0.72rem; min-height:16px; }
+
+  #voice-status { font-size:0.62rem; letter-spacing:0.1em; color:var(--red); text-align:center; min-height:14px; font-family:'Orbitron',sans-serif; }
+</style>
+</head>
+<body>
+
+<div id="api-overlay">
+  <div class="logo">J<span>.</span>A<span>.</span>R<span>.</span>V<span>.</span>I<span>.</span>S</div>
+  <p>Powered by Google Gemini — <strong style="color:var(--blue)">100% Free</strong></p>
+  <div class="steps">
+    <strong>Get your free API key:</strong><br/>
+    1. Go to <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a><br/>
+    2. Sign in with Google<br/>
+    3. Click <strong>"Create API Key"</strong><br/>
+    4. Copy &amp; paste below ↓
+  </div>
+  <input id="api-key-input" type="password" placeholder="Paste Gemini API key here..."/>
+  <button id="start-btn" onclick="initJarvis()">INITIALIZE</button>
+  <p id="key-error"></p>
+</div>
+
+<header>
+  <div class="logo">J<span>.</span>A<span>.</span>R<span>.</span>V<span>.</span>I<span>.</span>S</div>
+  <div class="header-right">
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span id="time-display">--:--</span>
+    </div>
+    <div class="arc-ring">
+      <svg viewBox="0 0 80 80" fill="none">
+        <circle cx="40" cy="40" r="36" stroke="#00d4ff" stroke-width="1" stroke-dasharray="6 4" opacity="0.5"/>
+        <circle cx="40" cy="40" r="26" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="3 8"/>
+      </svg>
+      <div class="arc-ring-inner"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="chat"></div>
+  <div id="voice-status"></div>
+  <div class="input-area">
+    <textarea id="user-input" placeholder="Type or speak..."></textarea>
+    <button class="btn" id="mic-btn" title="Voice">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="2" width="6" height="12" rx="3"/>
+        <path d="M5 10a7 7 0 0014 0M12 19v3M8 22h8"/>
+      </svg>
+    </button>
+    <button class="btn" id="send-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+      </svg>
+    </button>
+  </div>
+</main>
+
+<script>
+let API_KEY = '';
+let conversationHistory = [];
+let isListening = false;
+
+const SYSTEM_PROMPT = `You are J.A.R.V.I.S., a sophisticated AI assistant serving Troy.
+Speak with calm confidence, intelligence, and subtle wit — like the AI from Iron Man.
+Be helpful, concise, and slightly formal but personable. Address Troy by name occasionally.
+Keep responses short and conversational unless detail is truly needed.`;
+
+// Clock - shorter format for mobile
+setInterval(() => {
+  const now = new Date();
+  document.getElementById('time-display').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}, 1000);
+
+function initJarvis() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { document.getElementById('key-error').textContent = 'Please enter your API key.'; return; }
+  API_KEY = key;
+  document.getElementById('api-overlay').style.display = 'none';
+  addMessage('jarvis', "Good day, Troy. J.A.R.V.I.S. is online. All systems operational. How may I assist you?");
+  speak("Good day Troy. JARVIS is online. How may I assist you?");
+}
+
+function addMessage(role, text) {
+  const chat = document.getElementById('chat');
+  const typing = document.getElementById('typing-msg');
+  if (typing) typing.remove();
+
+  const wrapper = document.createElement('div');
+  wrapper.className = `msg ${role==='user'?'user':''}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role==='user'?'TR':'AI';
+
+  const inner = document.createElement('div');
+  inner.className = 'msg-inner';
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role==='user'?'TROY':'J.A.R.V.I.S';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+
+  inner.appendChild(label);
+  inner.appendChild(bubble);
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(inner);
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping() {
+  const chat = document.getElementById('chat');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg'; wrapper.id = 'typing-msg';
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar'; avatar.textContent = 'AI';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+  wrapper.appendChild(avatar); wrapper.appendChild(bubble);
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendMessage(userText) {
+  if (!userText.trim() || !API_KEY) return;
+  addMessage('user', userText);
+  document.getElementById('user-input').value = '';
+  showTyping();
+  conversationHistory.push({ role:'user', parts:[{text:userText}] });
+
+  try {
+    // Using gemini-1.5-flash — higher free tier limits
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          system_instruction: { parts:[{text:SYSTEM_PROMPT}] },
+          contents: conversationHistory
+        })
+      }
+    );
+    const data = await res.json();
+    if (data.error) {
+      addMessage('jarvis', `System error: ${data.error.message}`);
+      conversationHistory.pop(); return;
+    }
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received, Troy.";
+    conversationHistory.push({ role:'model', parts:[{text:reply}] });
+    addMessage('jarvis', reply);
+    speak(reply);
+  } catch(err) {
+    addMessage('jarvis', `Connection error: ${err.message}`);
+    const t = document.getElementById('typing-msg'); if(t) t.remove();
+  }
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text.replace(/[*_`#]/g,''));
+  utt.rate=0.93; utt.pitch=0.82; utt.volume=1;
+  const voices = window.speechSynthesis.getVoices();
+  const pref = voices.find(v=>v.name.includes('Daniel')||v.name.includes('Google UK')||v.name.includes('Arthur')||v.name.includes('Alex'));
+  if (pref) utt.voice = pref;
+  window.speechSynthesis.speak(utt);
+}
+
+// Voice input
+const micBtn = document.getElementById('mic-btn');
+const voiceStatus = document.getElementById('voice-status');
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SR();
+  recognition.continuous=false; recognition.interimResults=true; recognition.lang='en-US';
+  recognition.onstart = () => { isListening=true; micBtn.classList.add('listening'); voiceStatus.textContent='⬤ LISTENING...'; window.speechSynthesis.cancel(); };
+  recognition.onresult = (e) => {
+    const t = Array.from(e.results).map(r=>r[0].transcript).join('');
+    document.getElementById('user-input').value = t;
+    if (e.results[e.results.length-1].isFinal) { voiceStatus.textContent=''; sendMessage(t); }
+  };
+  recognition.onerror = recognition.onend = () => { isListening=false; micBtn.classList.remove('listening'); voiceStatus.textContent=''; };
+  micBtn.addEventListener('click', () => isListening ? recognition.stop() : recognition.start());
+} else {
+  micBtn.style.opacity='0.4'; micBtn.style.cursor='not-allowed';
+}
+
+document.getElementById('send-btn').addEventListener('click', () => sendMessage(document.getElementById('user-input').value));
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage(e.target.value);}
+});
+window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+</script>
+</body>
+</html>
